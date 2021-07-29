@@ -2,8 +2,15 @@ site_name: Luau Style Guide
 site_url: https://www.example.com
 theme:
     name: material 
+    palette:
+      scheme: slate
+      primary: light blue 
+    repo: fontawesome/brands/github-alt
 
 markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences 
 
+repo_url: https://github.com/PerduxStudios/LuauStyleGuide
+repo_name: LuauStyleGuide
+ 
