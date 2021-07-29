@@ -269,6 +269,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#tables" class="md-nav__link">
+    Tables
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#events-and-yielding" class="md-nav__link">
     Events and yielding
   </a>
@@ -381,6 +388,13 @@
         <li class="md-nav__item">
   <a href="#string-literals" class="md-nav__link">
     String literals
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tables" class="md-nav__link">
+    Tables
   </a>
   
 </li>
@@ -731,8 +745,7 @@ a object where other objects inherit from it, also known as <a href="https://jav
 
 <span class="nb">setmetatable</span><span class="p">(</span><span class="n">MyEnum</span><span class="p">,</span> <span class="p">{</span>
     <span class="n">__index</span> <span class="o">=</span> <span class="kr">function</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-        <span class="nb">error</span><span class="p">(</span><span class="nb">string.format</span><span class="p">(</span><span class="s2">&quot;%q is not a valid member of MyEnum&quot;</span><span class="p">,</span>
-            <span class="nb">tostring</span><span class="p">(</span><span class="n">key</span><span class="p">)),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="nb">error</span><span class="p">((</span><span class="s2">&quot;%s is not a valid member&quot;</span><span class="p">):</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
     <span class="kr">end</span><span class="p">,</span>
 <span class="p">})</span>
 </code></pre></div>
@@ -790,10 +803,18 @@ Since the <code>__index</code> metamethod is only called when a key is missing i
 </code></pre></div>
 </li>
 </ul>
+<h2 id="tables">Tables</h2>
+<ul>
+<li>
+<p>Avoid tables with both array-like and dictionary-like keys.</p>
+</li>
+<li>
+<p>Use <code>ipairs</code> to iterate over arrays, and <code>pairs</code> to iterate over dictionaries. This also helps clarify what kind of table we're expecting in a given block of code.</p>
+</li>
+</ul>
 <h2 id="events-and-yielding">Events and yielding</h2>
 <ul>
-<li>Never <strong>unnecessary</strong> poll if you can use an event instead. Busy polling is bad practice as it
-constantly yields the thread back and forth, while yielding until an event is fired simply yields the thread once, and resumes it once. Remember the rule: <a href="https://en.wikipedia.org/wiki/Event-driven_programming">Event Driven Programming</a> <strong>&gt;</strong> <a href="https://en.wikipedia.org/wiki/Polling_(computer_science)#:~:text=Polling%20is%20the%20process%20where,has%20received%20the%20next%20character.">Unnecessary polling</a>.</li>
+<li>Busy polling is bad practice as it constantly yields the thread back and forth. You should <strong>always</strong> use an event based approach instead. Also make sure to never unnecessary yield a thread!</li>
 </ul>
 <p><span style="color:green"><strong>Good</strong>:</span></p>
 <div class="highlight"><pre><span></span><code><span class="kd">local</span> <span class="n">Players</span> <span class="o">=</span> <span class="n">game</span><span class="p">:</span><span class="n">GetService</span><span class="p">(</span><span class="s2">&quot;Players&quot;</span><span class="p">)</span>
@@ -821,6 +842,28 @@ constantly yields the thread back and forth, while yielding until an event is fi
     <span class="n">wait</span><span class="p">()</span>
 <span class="kr">end</span>
 </code></pre></div>
+<ul>
+<li>Yield through <code>RunService.Heartbeat:Wait()</code>. Infact, you can also use a custom yielding function and wrap it in a module as well. Using <code>wait</code> is often regarded as a code smell due to
+the issues it accumulates.</li>
+</ul>
+<p><span style="color:green"><strong>Good</strong>:</span></p>
+<div class="highlight"><pre><span></span><code><span class="kd">local</span> <span class="n">RunService</span> <span class="o">=</span> <span class="n">game</span><span class="p">:</span><span class="n">GetService</span><span class="p">(</span><span class="s2">&quot;RunService&quot;</span><span class="p">)</span>
+
+<span class="kd">local</span> <span class="n">baseplate</span> <span class="o">=</span> <span class="n">workspace</span><span class="p">.</span><span class="n">Baseplate</span>
+
+<span class="c1">-- Destroy baseplate approximately after a frame:</span>
+<span class="n">RunService</span><span class="p">.</span><span class="n">Heartbeat</span><span class="p">:</span><span class="n">Wait</span><span class="p">()</span>
+
+<span class="n">baseplate</span><span class="p">:</span><span class="n">Destroy</span><span class="p">()</span>
+</code></pre></div>
+<p><span style="color:red"><strong>Bad</strong>:</span></p>
+<div class="highlight"><pre><span></span><code><span class="kd">local</span> <span class="n">baseplate</span> <span class="o">=</span> <span class="n">workspace</span><span class="p">.</span><span class="n">Baseplate</span>
+
+<span class="c1">-- Destroy baseplate approximately after 2 frames:</span>
+<span class="n">wait</span><span class="p">()</span>
+
+<span class="n">baseplate</span><span class="p">:</span><span class="n">Destroy</span><span class="p">()</span>
+</code></pre></div>
 <h2 id="garbage-collection">Garbage collection</h2>
 <ul>
 <li>
@@ -829,18 +872,30 @@ that is never cleared. An reference type object (table, userdata, string, functi
 garbage collected when they have 0 references. </p>
 </li>
 <li>
-<p>Functions that use an <a href="https://en.wikipedia.org/wiki/External_variable#:~:text=In%20the%20C%20programming%20language,defined%20inside%20a%20function%20block.">external local variable</a> hold reference to them (assuming they're reference type objects). The function will only no longer hold a reference to them once the function it self is garbage collected.</p>
+<p>Functions that use an <a href="https://en.wikipedia.org/wiki/External_variable#:~:text=In%20the%20C%20programming%20language,defined%20inside%20a%20function%20block.">external local variable</a> hold reference to them (assuming they're reference type objects). The function will only no longer hold a reference to them once the function it 
+self is garbage collected.</p>
 </li>
-<li>
-<p>Always disconnect events when they're no longer in need. Events hold an internal reference
+</ul>
+<div class="highlight"><pre><span></span><code><span class="kd">local</span> <span class="n">obj</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="kd">local</span> <span class="kr">function</span> <span class="nf">test</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="c1">-- Reference to the up value obj</span>
+<span class="kr">end</span> 
+</code></pre></div>
+<ul>
+<li>Always disconnect events when they're no longer in need. Events hold an internal reference
 to the connected callback, and that callback will not be garbage collected unless the event it self is disconnected (event's disconnected no longer reference the connected callback). You can
-use a <a href="https://devforum.roblox.com/t/how-to-use-a-maid-class-on-roblox-to-manage-state/340061">Maid</a> to easily track events and clean them up.</p>
-</li>
+use a <a href="https://devforum.roblox.com/t/how-to-use-a-maid-class-on-roblox-to-manage-state/340061">Maid</a> to easily track events and clean them up.</li>
 </ul>
 <h2 id="comments">Comments</h2>
 <ul>
-<li>You don't need to necessarily use comments if the code is self explanatory. Although comments
-should <strong>both</strong> explain why and what the code is doing in simple terms.</li>
+<li>
+<p>You don't need to necessarily use comments if the code is self explanatory. Although comments
+should <strong>both</strong> explain why and what the code is doing in simple terms. </p>
+</li>
+<li>
+<p>Don't use multilines for comments. Exceptions include the listing of methods/documentation on top of the code.</p>
+</li>
 </ul>
                 
               
