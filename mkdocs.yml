@@ -1,0 +1,9 @@
+site_name: Luau Style Guide
+site_url: https://www.example.com
+theme:
+    name: material 
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences 
+
